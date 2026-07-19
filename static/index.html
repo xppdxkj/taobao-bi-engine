@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="淘宝双十二大促数据分析与运营辅助看板 — 基于 Pandas 的 offline 数据指标切片分析">
+    <title>淘宝双十二大促数据分析看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- ═══════════════════════════════════════════════════════════
+             顶置毛玻璃导航栏 (Top Navigation Glassmorphic Bar)
+        ═══════════════════════════════════════════════════════════ -->
+        <header class="top-nav-bar">
+            <div class="nav-brand">
+                <div class="brand-logo">双12</div>
+                <div class="brand-info">
+                    <h2 class="brand-name">QuickMart</h2>
+                    <span class="brand-sub">大促运营数据分析看板</span>
+                </div>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#overview" class="nav-item active" data-view="overview">📊 大盘概览</a>
+                <a href="#funnel" class="nav-item" data-view="funnel">⏳ 漏斗下钻</a>
+                <a href="#hourly" class="nav-item" data-view="hourly">⏱️ 分时趋势</a>
+                <a href="#abandon" class="nav-item" data-view="abandon">🛑 凑单流失</a>
+                <a href="#rfm" class="nav-item" data-view="rfm">💎 价值分层 (RFM)</a>
+                <a href="#association" class="nav-item" data-view="association">🕸️ 关联推荐</a>
+            </nav>
+            
+            <div class="nav-right">
+                <button id="btn-toggle-ai-panel" class="btn-ai-portal">
+                    <span>🔮 AI大脑</span> <span class="ai-badge-dot inactive" id="nav-ai-dot"></span>
+                </button>
+                <div class="status-indicator">
+                    <span class="status-dot pulse"></span>
+                    <span id="data-status-text">数据就绪</span>
+                </div>
+            </div>
+
+            <!-- 🔮 悬浮滑动 AI 大脑配置中心 (Floating Dropdown Drawer) -->
+            <div id="floating-ai-drawer" class="floating-ai-drawer">
+                <div class="ai-config-header">
+                    <span>🔮 AI 运营诊断参数配置</span>
+                    <span class="ai-toggle-badge inactive" id="ai-status-badge">未激活</span>
+                </div>
+                <div class="ai-config-body">
+                    <div class="drawer-field">
+                        <label>模型通道:</label>
+                        <select id="ai-provider" class="ai-select">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openai">OpenAI / DeepSeek</option>
+                        </select>
+                    </div>
+                    <div class="drawer-field">
+                        <label>API Key 密钥:</label>
+                        <input type="password" id="ai-key" class="ai-input" placeholder="API Key 密钥">
+                    </div>
+                    <div class="drawer-field">
+                        <label>代理 Base URL (选填):</label>
+                        <input type="text" id="ai-base" class="ai-input" placeholder="国内镜像代理 Base URL">
+                    </div>
+                    <div class="drawer-field">
+                        <label>自定义模型名 (选填):</label>
+                        <input type="text" id="ai-model" class="ai-input" placeholder="gemini-1.5-flash / deepseek-chat">
+                    </div>
+                    <button id="btn-save-ai" class="btn-save-ai">⚡ 激活大模型诊断</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             右侧主画布区域 (Main View Panels)
+        ═══════════════════════════════════════════════════════════ -->
+        <main class="main-content">
+            <!-- 全局头部控制栏 -->
+            <header class="dash-header">
+                <div class="header-title">
+                    <h1>双十二大促运营分析看板</h1>
+                    <p class="header-sub">数据周期：2017-11-25 至 2017-12-03 · 数据样本：50万行用户行为日志</p>
+                </div>
+                <div class="header-controls">
+                    <div class="filter-group">
+                        <label class="filter-label">交易日期</label>
+                        <select id="filter-date" class="filter-select"></select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">商品品类</label>
+                        <select id="filter-category" class="filter-select">
+                            <option value="">全部品类</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 6大 KPI 指标行 -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon blue">🛒</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">大促成交单量</div>
+                        <div class="kpi-value" id="kpi-orders-val">—</div>
+                        <div class="kpi-sub">Total Purchases</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon purple">👥</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">独立活跃访客</div>
+                        <div class="kpi-value" id="kpi-uv-val">—</div>
+                        <div class="kpi-sub">Unique Visitors (UV)</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon orange">👁</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">页面浏览总量</div>
+                        <div class="kpi-value" id="kpi-pv-val">—</div>
+                        <div class="kpi-sub">Page Views (PV)</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green">📈</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">订单整体转化率</div>
+                        <div class="kpi-value" id="kpi-cvr-val">—</div>
+                        <div class="kpi-sub">Overall Conversion</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon red">🛑</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">购物车流失率</div>
+                        <div class="kpi-value" id="kpi-abandon-val">—</div>
+                        <div class="kpi-sub">Cart Abandonment</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon amber">🔍</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">人均浏览深度</div>
+                        <div class="kpi-value" id="kpi-depth-val">—</div>
+                        <div class="kpi-sub">PV per User</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 1: 大盘概览 (Overview Dashboard)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-overview" class="view-panel active">
+                <!-- 金字塔原理结论先行卡片 -->
+                <div class="findings-card" style="margin-bottom: 1.5rem;">
+                    <div class="findings-header">
+                        <span class="findings-badge">💡 增长中台决策室</span>
+                        <h2>大促增长中心运营关键发现</h2>
+                    </div>
+                    <ul class="findings-list" id="findings-container">
+                        <li><span>•</span> 加载中...</li>
+                    </ul>
+                </div>
+
+                <!-- 6大基础看板网格 -->
+                <div class="charts-grid">
+                    <!-- 漏斗 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">FLOW</div>
+                                <h3 class="chart-title">大促全链路转化漏斗</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="funnel">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-funnel">💡 正在读取转化口径进行实时漏洞诊断...</p>
+                        <div id="funnel-chart" class="chart-canvas"></div>
+                    </div>
+                    <!-- 分时 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">TIME</div>
+                                <h3 class="chart-title">大促 24 小时分时行为波谱</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="hourly">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-hourly">💡 正在评估分时活跃波谱峰值特征...</p>
+                        <div id="hourly-chart" class="chart-canvas"></div>
+                    </div>
+                    <!-- 流失 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">LEAKAGE</div>
+                                <h3 class="chart-title">加购未购流失品类 Top 10</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="abandon">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-abandon">💡 正在寻找购物车流失的重灾区品类...</p>
+                        <div id="abandon-chart" class="chart-canvas"></div>
+                    </div>
+                    <!-- 留存替换为 RFM -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">SEGMENTATION</div>
+                                <h3 class="chart-title">RFM 买家价值分层星云图</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="rfm">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-rfm">💡 正在对购买用户进行 R、F、M 行为聚类与画像...</p>
+                        <div id="rfm-chart" class="chart-canvas"></div>
+                    </div>
+                    <!-- 关联 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">CROSS-SELL</div>
+                                <h3 class="chart-title">购物篮类目关联推荐网络</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="association">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-association">💡 正在运行 Apriori 购物篮推荐频繁项集挖掘...</p>
+                        <div id="association-chart" class="chart-canvas"></div>
+                    </div>
+                    <!-- 时滞 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-tag">DECISION</div>
+                                <h3 class="chart-title">点击至下单决策时滞分布</h3>
+                            </div>
+                            <button class="btn-detail" data-chart="latency">查看详情 →</button>
+                        </div>
+                        <p class="chart-ai-summary" id="ai-summary-latency">💡 正在分析用户点击至成交的考虑时长分布...</p>
+                        <div id="latency-chart" class="chart-canvas"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 2: 漏斗转化工作区 (Funnel Workspace)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-funnel" class="view-panel">
+                <div class="workspace-layout">
+                    <div class="ws-main-chart">
+                        <div class="workspace-header">
+                            <span class="chart-tag">⏳ 漏斗下钻决策台</span>
+                            <h2>大促全链路转化漏斗下钻分析</h2>
+                            <p class="ws-subtitle">统计浏览点击 ➔ 收藏/加购 ➔ 成交的全链路转化率与流失漏洞</p>
+                        </div>
+                        <div id="ws-funnel-chart" class="ws-chart-canvas"></div>
+                    </div>
+                    <div class="ws-side-panel">
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">📊 漏斗数据明细</h3>
+                            <div id="ws-funnel-table"></div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💡 漏斗转化漏洞运营诊断</h3>
+                            <div id="ws-funnel-ai" class="ws-ai-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 3: 分时趋势工作区 (Hourly Workspace)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-hourly" class="view-panel">
+                <div class="workspace-layout">
+                    <div class="ws-main-chart">
+                        <div class="workspace-header">
+                            <span class="chart-tag">⏱️ 时序趋势分析</span>
+                            <h2>大促 24 小时活跃流量与成交窗口</h2>
+                            <p class="ws-subtitle">复盘用户分时段活跃波峰（折柱双轴），指导广告竞价与推送时机</p>
+                        </div>
+                        <div id="ws-hourly-chart" class="ws-chart-canvas"></div>
+                    </div>
+                    <div class="ws-side-panel">
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">⏰ 24小时波谱明细表</h3>
+                            <div id="ws-hourly-table"></div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💡 分时成交时序运营诊断</h3>
+                            <div id="ws-hourly-ai" class="ws-ai-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 4: 凑单流失工作区 (Abandonment Workspace)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-abandon" class="view-panel">
+                <div class="workspace-layout">
+                    <div class="ws-main-chart">
+                        <div class="workspace-header">
+                            <span class="chart-tag">🛑 凑单漏洞分析</span>
+                            <h2>加购未购流失品类排行诊断</h2>
+                            <p class="ws-subtitle">监控大促购物车凑单未付款的商品流失重灾区类目</p>
+                        </div>
+                        <div id="ws-abandon-chart" class="ws-chart-canvas"></div>
+                    </div>
+                    <div class="ws-side-panel">
+                        <!-- 交互式挽回模拟器 -->
+                        <div class="ws-side-card interactive-card">
+                            <h3 class="ws-card-title">🎛️ 购物车凑单挽回模拟器 (Recovery Simulator)</h3>
+                            <div class="sim-container">
+                                <div class="sim-row">
+                                    <label>大促立减优惠券力度:</label>
+                                    <input type="range" id="sim-discount" min="5" max="30" value="15" step="5">
+                                    <span id="sim-discount-val" class="badge">15%</span>
+                                </div>
+                                <div class="sim-row">
+                                    <label>预计流失召回率 (Elasticity):</label>
+                                    <span id="sim-recall-rate" style="color:#10B981; font-weight:700;">12.0%</span>
+                                </div>
+                                <div class="sim-row">
+                                    <label>预期挽回流失用户量:</label>
+                                    <span id="sim-recovered-users" style="color:var(--accent); font-weight:700;">—</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">📊 购物车流失排行</h3>
+                            <div id="ws-abandon-table"></div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💡 凑单流失挽回运营诊断</h3>
+                            <div id="ws-abandon-ai" class="ws-ai-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 5: RFM 买家价值分层工作区 (RFM Workspace)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-rfm" class="view-panel">
+                <div class="workspace-layout">
+                    <div class="ws-main-chart">
+                        <div class="workspace-header">
+                            <span class="chart-tag">💎 客户价值分层</span>
+                            <h2>买家 RFM 价值分层多维气泡云</h2>
+                            <p class="ws-subtitle">基于大促期内买家购买时效 (R)、频次 (F)、累计消费 (M) 精细聚类出的 8 类客群（气泡大小 = 客户数，横轴越偏右最近消费越近，纵轴越向上购买频次越高）</p>
+                        </div>
+                        <div id="ws-rfm-chart" class="ws-chart-canvas"></div>
+                    </div>
+                    <div class="ws-side-panel">
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💎 细分客群特征数据表</h3>
+                            <div id="ws-rfm-table"></div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💡 不同价值客群运营策略意见</h3>
+                            <div id="ws-rfm-ai" class="ws-ai-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 VIEW 6: 关联推荐网络工作区 (Association Workspace)
+            ═══════════════════════════════════════════════════════════ -->
+            <div id="view-association" class="view-panel">
+                <div class="workspace-layout">
+                    <div class="ws-main-chart">
+                        <div class="workspace-header">
+                            <span class="chart-tag">🕸️ 共购网络拓扑</span>
+                            <h2>购物篮类目频繁项集关联推荐网络</h2>
+                            <p class="ws-subtitle">基于 Apriori 频繁购买算法挖掘的品类搭配强度网络（连线粗细 = Lift 提升度）</p>
+                        </div>
+                        <div id="ws-assoc-chart" class="ws-chart-canvas"></div>
+                    </div>
+                    <div class="ws-side-panel">
+                        <!-- 交互式组合促销生成器 -->
+                        <div class="ws-side-card interactive-card">
+                            <h3 class="ws-card-title">🧩 跨品类搭售组合模拟器 (Bundle Combo Builder)</h3>
+                            <div class="bundle-builder">
+                                <div class="builder-row">
+                                    <label>购买类目 A:</label>
+                                    <select id="bundle-cat-a" class="builder-select"></select>
+                                </div>
+                                <div class="builder-row">
+                                    <label>共购类目 B:</label>
+                                    <select id="bundle-cat-b" class="builder-select"></select>
+                                </div>
+                                <button id="btn-build-bundle" class="btn-build">⚡ 计算共购拉升度</button>
+                                <div id="bundle-result" class="bundle-result-box">
+                                    <p>请选择左侧两个类目并点击计算</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">🕸️ 品类强关联对清单</h3>
+                            <div id="ws-assoc-table"></div>
+                        </div>
+                        <div class="ws-side-card">
+                            <h3 class="ws-card-title">💡 搭售推荐组合运营诊断</h3>
+                            <div id="ws-assoc-ai" class="ws-ai-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pandas 数据沙箱 -->
+            <section class="sandbox-section">
+                <div class="sandbox-header">
+                    <span>⚡ Pandas 内存数仓实时计算工作台 (直连 50万行数据)</span>
+                    <button id="sandbox-run" class="btn-run">▶ 运行查询</button>
+                </div>
+                <div class="sandbox-body">
+                    <textarea id="sandbox-code" class="sandbox-code" rows="4" spellcheck="false"># 示例：统计各品类的购买行为总量
+result = df[df['behavior_type']=='buy'].groupby('category_name')['user_id'].count().sort_values(ascending=False).reset_index()
+result.columns = ['品类', '购买次数']</textarea>
+                    <div id="sandbox-output" class="sandbox-output">等待执行...</div>
+                </div>
+            </section>
+
+            <!-- 核心指标口径表 -->
+            <section class="glossary-section">
+                <div class="glossary-card">
+                    <h3 class="glossary-title">核心指标口径表说明</h3>
+                    <table class="glossary-table">
+                        <thead>
+                            <tr>
+                                <th>指标名称</th>
+                                <th>当前统计定义</th>
+                                <th>口径说明</th>
+                                <th>业务注意与应用场景</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="glossary-name">大促成交单量</td>
+                                <td>count(behavior_type == 'buy')</td>
+                                <td>大促周期内，用户在交易历史中发生的购买总笔数。</td>
+                                <td>不包含退款订单。用于反映大促最核心的销售规模。</td>
+                            </tr>
+                            <tr>
+                                <td class="glossary-name">独立活跃访客</td>
+                                <td>count(distinct user_id)</td>
+                                <td>去重计算的访问大促会话用户的唯一账号数。</td>
+                                <td>大促整体拉新与存量激活的流量基石指标。</td>
+                            </tr>
+                            <tr>
+                                <td class="glossary-name">订单整体转化率</td>
+                                <td>buy_users / active_visitors (UV)</td>
+                                <td>在全部到访平台的人数中，最终下单支付的人数占比。</td>
+                                <td>用于评估大促拉新渠道 of 转化质量。</td>
+                            </tr>
+                            <tr>
+                                <td class="glossary-name">购物车流失率</td>
+                                <td>1 - (buy_users / cart_users)</td>
+                                <td>加购后最终没有进行下单付款的人数比例。</td>
+                                <td>衡量大促凑单机制及结算环节流失漏失的重要监控点。</td>
+                            </tr>
+                            <tr>
+                                <td class="glossary-name">人均浏览深度</td>
+                                <td>total_pv / total_uv</td>
+                                <td>平均每位活跃用户在大促页面产生的点击浏览总次数。</td>
+                                <td>反映用户对大促坑位和商品的种草及逛店意愿强弱。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 详情下钻弹窗 Modal -->
+    <div id="detail-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-title-text">图表详情</h2>
+                    <p id="modal-subtitle-text" class="modal-subtitle"></p>
+                </div>
+                <button id="modal-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-chart-canvas" class="modal-chart-canvas"></div>
+                <div class="modal-bottom">
+                    <div class="modal-table-wrap">
+                        <h3 class="modal-section-title">📊 数据明细</h3>
+                        <div id="modal-table-container"></div>
+                    </div>
+                    <div class="modal-analysis-wrap">
+                        <h3 class="modal-section-title">💡 运营诊断归因报告</h3>
+                        <div id="modal-analysis-content" class="modal-analysis-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

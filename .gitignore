@@ -1,0 +1,21 @@
+# 排除临时与生成源文件，保持仓库小巧
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.idea/
+.vscode/
+
+# 排除未清洗的庞大原始天池数据集（只保留清洗后的 data/user_behavior.csv）
+tianchi_expanded_trade.csv
+taobao_mini.csv
+weibo_analytics_data.csv
+tianchi_expanded_baby.csv
+tianchi_mum_baby*
+UserBehavior.csv
+
+# 排除临时脚本
+scratch/
+test_*.py
+inspect_*.py
