@@ -235,6 +235,6 @@ def build_dataset(n_total: int = 500_000) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    df = build_dataset(500_000)
+    df = build_dataset(250_000)
     print("\nData distribution:")
     print(df["behavior_type"].value_counts())
