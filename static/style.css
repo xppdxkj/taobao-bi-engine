@@ -1309,4 +1309,40 @@ body {
         border-bottom: 1px solid var(--border);
         height: 140px;
     }
+
+    /* AI 诊断面板在手机端居中，防止定位超出屏幕 */
+    .floating-ai-drawer {
+        position: absolute;
+        top: 130px;
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+        z-index: 2000;
+    }
+
+    /* 手机端放大关闭按钮以方便手指点击（对齐 44px 黄金物理触控准则，防止点不到） */
+    .modal-close {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 沙箱运行按钮易按性优化 */
+    .btn-run {
+        padding: 8px 20px;
+        font-size: 0.85rem;
+    }
+
+    /* 防止 iOS Safari 在输入框/下拉菜单聚焦时发生强制页面缩放与抖动（字号强制设为 16px 防止 iOS 自动放大） */
+    .ai-input, .ai-select, .filter-select {
+        font-size: 16px !important;
+    }
+
+    /* 使 iOS Safari / 微信内置浏览器上的明细表格与沙箱输出具备原生的“惯性滚动”阻尼手感，体验与原生 App 一致 */
+    .modal-table-wrap, .sandbox-output {
+        -webkit-overflow-scrolling: touch;
+    }
 }
