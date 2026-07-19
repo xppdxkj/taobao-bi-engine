@@ -21,9 +21,9 @@ _df = None
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data")
 INPUT_FILE = os.path.join(DATA_PATH, "user_behavior.csv")
 
-def load_data():
+def load_data(force=False):
     global _df
-    if _df is not None:
+    if _df is not None and not force:
         return _df
     
     print("[INFO] Loading 500k-row in-memory database...")

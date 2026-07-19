@@ -1,92 +1,94 @@
-# 大促运营数据分析看板 (Double-12 E-Commerce Analytics Dashboard)
+# 大促运营数据分析看板
 
-本项目是一个专为电商运营人员（如增长、CRM、品类运营）设计的**大促运营数据分析与策略辅助看板**。项目基于阿里天池公开的淘宝双十二期间用户行为时序流水进行清洗，在**后端**实现 RFM 客群分层与 Apriori 购物篮关联挖掘算法，并利用 ECharts 呈现多维交互图表。
+本项目提供一个针对大促期间用户行为日志的可视化数据分析平台。后端基于 Python FastAPI 与 Pandas 进行多维度指标切片计算，前端使用 ECharts 进行交互图表呈现。
 
-项目的设计理念是**“务实、对齐业务”**，旨在通过高效轻量级的数据工程方案解决电商运营中的转化下钻、流失测算、客群分化以及套餐搭配等核心痛点。
+## 主要分析模块
 
----
+1. **转化漏斗与流失模拟**：展示点击、收藏加购、付款的漏斗转化率，并可通过滑块调节满减让利幅度，估算预期可拉回的流失人数及回笼交易额（GMV）。
+2. **RFM 用户价值分层**：依据最近购买时间（Recency）、大促成交频次（Frequency）及估算金额（Monetary）对买家进行 8 大客群分类。
+3. **购物篮关联挖掘**：采用 Apriori 频繁项集算法计算商品类目共购的提升度（Lift）与支持度，并绘制网络拓扑图提供搭配套餐定价建议。
+4. **时序与时滞分析**：分析 24 小时流量与成交走势，以及用户从首次点击到最终下单的考虑时间差分布。
 
-## 🛠️ 技术栈与系统架构
+## 技术栈与设计
 
-项目采用前后端分离的轻量级单机容器化架构：
+*   **后端**：Python FastAPI
+*   **数据处理**：Pandas 内存计算。系统在启动时将 50 万行 CSV 流水数据一次性预加载至内存并建立索引，多维度交叉切片 API 响应时间在 10ms 以内。
+*   **前端**：原生 HTML5 + CSS3 + JavaScript，使用 ECharts 5 渲染图表。
+*   **外部诊断接口**：预留了大语言模型（Gemini / OpenAI / DeepSeek）的 HTTP 请求通道，当前默认采用本地规则引擎进行报告输出。
 
-*   **后端服务 (Backend)**：**Python FastAPI**
-    *   采用 ASGI 高性能 Web 框架，提供低延迟的 RESTful API。
-*   **数据存储与计算 (Database & Processing)**：**Pandas In-Memory 计算**
-    *   *架构抉择*：针对双十二大促约 50 万行的中体量行为数据（约 40MB CSV），本项目在系统启动时（Startup Lifespan）一次性将数据预加载入 Pandas 内存中并建立多维索引。
-    *   *性能优势*：相较于频繁读写磁盘数据库（如 MySQL/SQLite），内存切片与统计聚合避免了 I/O 损耗，使前端所有交叉切片 API（特定日期 × 特定类目的下钻统计）响应时间稳定控制在 **10ms 以内**，极大降低了单机部署成本。
-*   **前端展示 (Frontend)**：**HTML5 + CSS3 (毛玻璃微渐变视觉) + JavaScript (原生无框架)**
-    *   **ECharts 5.x**：深度定制了 6 大交互图表，包含时序波谱线柱图、流失条形图、RFM 散点气泡云图（支持 R 轴 inverse 反向排序以适配时效认知）、关联网络关系力导向图等。
-*   **算法引擎 (Algorithms)**：
-    *   **RFM 模型**：基于最近一次购买（R）、大促购买频次（F）、消费金额（M，基于品类均价估算）进行 Pandas 多维矩阵打分并使用中位数阈值聚类。
-    *   **Apriori 关联算法**：计算品类共购的频繁项集，提供 Support（支持度）和 Lift（提升度）指标计算。
-*   **AI 诊断能力 (AI Diagnostics)**：
-    *   对接通用大语言模型端点（支持 Gemini / OpenAI / DeepSeek 协议），输入 Key 后可一键生成图表级文字诊断报告。
-    *   内置完整的**本地专家规则引擎降级防阻断机制**，无 Key 状态下自动输出本地高仿真专家建议，保证系统生产稳健度。
+## 后续扩展接口（实时数据与文件上传）
 
----
+本系统采用内存数仓设计，所有的分析 API 均基于 `analyzer.py` 中的全局 DataFrame 变量 `_df` 进行切片查询。如果需要介入实时文件或支持前台文件上传，可参考以下接口扩展设计：
 
-## 📊 它能用来做什么？（业务分析场景）
+### 1. 支持 CSV 文件上传接口
+若要支持在网页端上传新的大促数据文件，只需在 `agent.py` 中新增一个文件接收接口，保存并覆盖本地 CSV 后，调用重载函数：
+```python
+from fastapi import UploadFile, File
 
-本看板不是简单的“PV/UV 展示板”，它紧密贴合真实的电商增长运营工作流，解决以下三个实际业务诉求：
+@app.post("/api/upload-dataset")
+async def upload_dataset(file: UploadFile = File(...)):
+    # 1. 保存上传的 CSV 到本地目录
+    with open(analyzer.INPUT_FILE, "wb") as f:
+        f.write(await file.read())
+    # 2. 强制清除全局缓存并重新载入内存
+    analyzer.load_data(force=True)
+    return {"status": "success", "rows": len(analyzer._df)}
+```
 
-### 1. 转化漏洞诊断与购物车流失挽回测算
-*   **转化漏斗**：展示“浏览点击 ➔ 收藏加购 ➔ 最终付款”的行为级转化漏斗，直观暴露结算阶段的流失漏洞。
-*   **流失模拟器**：在“凑单流失”工作区，运营人员可以通过滑动条调节“专享满减优惠券力度”，系统基于历史客单价与用户转化弹性，自动模拟计算出预期可拉回的买家规模以及**预期回笼的 GMV 销售额**，用以评估券包发放的 ROI。
+### 2. 实时行为流水追加接口
+若要接入 Kafka 或前端埋点上报的实时流水，可在后端提供一个追加接口，将新数据实时追加至 `_df`：
+```python
+@app.post("/api/append-record")
+def append_record(user_id: int, item_id: int, category_id: int, behavior: str, timestamp: int):
+    # 1. 组装新行
+    new_row = {
+        "user_id": user_id,
+        "item_id": item_id,
+        "category_id": category_id,
+        "behavior_type": behavior,
+        "timestamp": timestamp,
+        "date": pd.to_datetime(timestamp, unit="s").date(),
+        "hour": pd.to_datetime(timestamp, unit="s").hour
+    }
+    # 2. 追加至全局 DataFrame 中
+    analyzer._df = pd.concat([analyzer._df, pd.DataFrame([new_row])], ignore_index=True)
+    return {"status": "ok"}
+```
+由于所有统计 API 在查询时都会读取最新的 `analyzer._df`，上述任意一种写入方式都会**立刻更新**前台的全部图表指标。
 
-### 2. CRM 用户价值分层与差异化触达 (RFM)
-*   系统将付款买家划分为 **8 类精细化客群**（如“重要价值客户”、“重要保持客户”、“流失边缘客户”等）。
-*   在 RFM 散点矩阵图中，X 轴代表 R（购买天数，越靠右越近），Y 轴代表 F（购买频次），气泡大小代表人数。
-*   运营可以通过气泡分布一眼锁定“有钱但快流失”的 **“重要保持客户”**，并在右侧直接获取定制的短信/唤醒推送策略，实现精准的差异化营销。
-
-### 3. 品类搭售套餐设计 (Apriori)
-*   通过 Apriori 频繁项集自动识别在同一天、被同一个用户打包结算的热门品类组合。
-*   前端用拓扑网络图展示频繁共购对（如手机数码 ↔ 电脑办公）。
-*   运营人员可使用“搭售组合模拟器”选择任意两个类目，系统会自动算出其提升度（Lift），并根据提升度大小自动建议**套餐定价折扣率**（如强关联建议 9.0 折，一般关联建议 9.5 折），直接指导详情页的套餐合并设计。
-
----
-
-## 📂 项目结构
+## 项目结构
 
 ```bash
 ├── data/
-│   └── user_behavior.csv    # 清洗后的双十二大促行为流水数据（约50万行，40MB）
+│   └── user_behavior.csv    # 50万行大促用户行为日志（运行必需）
 ├── static/
-│   ├── index.html           # 顶置横向毛玻璃导航栏与响应式卡片网格
-│   ├── style.css            # BI 界面专属微阴影、微交互样式表
-│   └── app.js               # ECharts 图表初始化、Tab 切换、弹窗及沙箱交互
-├── agent.py                 # FastAPI API 路由入口与 Uvicorn 启动项
-├── analyzer.py              # 数据预加载、RFM 聚类、Apriori 频繁项集计算模块
-├── downloader.py            # 数据流水模拟生成脚本
-├── Dockerfile               # 生产环境容器化配置文件
-├── requirements.txt         # Python 依赖库声明
-└── README.md                # 本文档说明书
+│   ├── index.html           # 前端大屏骨架
+│   ├── style.css            # 看板样式表
+│   └── app.js               # 图表渲染与交互逻辑
+├── agent.py                 # FastAPI 路由服务
+├── analyzer.py              # 数据清洗、RFM 与 Apriori 算法计算逻辑
+├── requirements.txt         # 依赖库列表
+└── Dockerfile               # 镜像打包配置
 ```
 
----
+## 运行说明
 
-## 🚀 快速本地运行
+### 本地运行
+1. 安装依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. 启动服务：
+   ```bash
+   python agent.py
+   ```
 
-### 方法一：直接运行 (Python)
-1.  确保本地已安装 Python 3.9+。
-2.  进入项目根目录，安装依赖：
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  启动 FastAPI 服务器：
-    ```bash
-    python agent.py
-    ```
-4.  在浏览器中打开 **`http://127.0.0.1:8000`** 即可访问。
-
-### 方法二：容器化运行 (Docker)
-1.  确保本地已安装并运行 Docker。
-2.  在项目根目录下构建镜像：
-    ```bash
-    docker build -t taobao-bi-engine .
-    ```
-3.  运行容器（映射本地 8000 端口）：
-    ```bash
-    docker run -d -p 8000:7860 --name taobao-bi taobao-bi-engine
-    ```
-4.  访问 `http://127.0.0.1:8000` 即可开始分析。
+### Docker 容器运行
+1. 构建镜像：
+   ```bash
+   docker build -t taobao-bi-engine .
+   ```
+2. 启动容器：
+   ```bash
+   docker run -d -p 8000:7860 taobao-bi-engine
+   ```
