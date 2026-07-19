@@ -1137,3 +1137,176 @@ body {
     .findings-list { grid-template-columns: 1fr; }
     .modal-bottom { grid-template-columns: 1fr; }
 }
+
+/* ─── 手机端适配 (Mobile Responsiveness Under 600px) ─────────────────── */
+@media (max-width: 600px) {
+    /* 顶栏改为两行上下布局，防止 Logo、AI按钮和导航项发生重叠 */
+    .top-nav-bar {
+        height: auto;
+        flex-direction: column;
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+
+    .nav-brand {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .nav-right {
+        gap: 0.75rem;
+    }
+
+    /* 导航链接改为像手机淘宝一样的“横向滑动条”交互，体验极佳 */
+    .nav-links {
+        width: 100%;
+        overflow-x: auto;
+        display: flex;
+        white-space: nowrap;
+        padding: 4px 6px;
+        gap: 0.25rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-links::-webkit-scrollbar {
+        display: none; /* 隐藏滚动条，保持精致感 */
+    }
+
+    .nav-item {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    /* 主画布上下边距收缩 */
+    .main-content {
+        padding: 1rem 1rem 2rem;
+        gap: 1rem;
+    }
+
+    /* 页面大标题折行与控制项垂直分布，防止标题被挤压成单字竖排 */
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .header-title {
+        width: 100%;
+    }
+
+    .header-title h1 {
+        font-size: 1.1rem;
+        line-height: 1.4;
+        white-space: normal;
+    }
+
+    .header-controls {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-select {
+        width: 100%;
+        font-size: 0.75rem;
+        padding: 5px 8px;
+    }
+
+    /* KPI 指标卡片微调，采用精致小卡片并排 */
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem;
+    }
+
+    .kpi-card {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .kpi-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .kpi-label {
+        font-size: 0.68rem;
+    }
+
+    .kpi-value {
+        font-size: 0.95rem;
+    }
+
+    .kpi-sub {
+        font-size: 0.58rem;
+    }
+
+    /* 结论先行卡片布局调整 */
+    .findings-list {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem;
+    }
+
+    /* ECharts 图表卡片高度压缩 */
+    .chart-canvas {
+        height: 240px;
+    }
+
+    /* 弹窗放大视图改为上下平铺 */
+    .modal-container {
+        width: 95%;
+        margin: 10px auto;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        padding: 1rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .modal-chart-canvas {
+        height: 260px;
+    }
+
+    .modal-bottom {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* 工作区左右布局在手机端改为上下单列 */
+    .workspace-layout {
+        flex-direction: column !important;
+        gap: 1rem;
+    }
+
+    .ws-main-chart, .ws-side-panel {
+        width: 100% !important;
+    }
+
+    .ws-chart-canvas {
+        height: 240px;
+    }
+
+    /* 沙箱布局微调 */
+    .sandbox-body {
+        grid-template-columns: 1fr !important;
+    }
+
+    .sandbox-code {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        height: 140px;
+    }
+}
