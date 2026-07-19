@@ -2,14 +2,14 @@
 
 本项目提供一个针对大促期间用户行为日志的可视化数据分析平台。后端基于 Python FastAPI 与 Pandas 进行多维度指标切片计算，前端使用 ECharts 进行交互图表呈现。
 
-![系统主页大盘全景](static/screenshots/00_overview.png)
+![系统主页大盘全景](static/screenshots/01_overview.png)
 *图1：大促看板主页概览（包含 KPI 数据卡片、全局诊断结论与6大核心图表）*
 
 ## 主要分析模块
 
 ### 1. 转化漏斗与流失模拟
 *   **大盘转化损耗统计**：展示大促期间“点击 ➔ 收藏加购 ➔ 付款”的行为级漏斗转化效率，直观暴露各链路段的损耗漏洞。
-    ![漏斗下钻分析工作区](static/screenshots/01_funnel_workspace.png)
+    ![漏斗下钻分析工作区](static/screenshots/02_funnel_workspace.png)
     *图2：漏斗下钻工作区（提供各漏斗步骤的环比损耗明细表与下钻运营诊断）*
 *   **流失挽回测算**：针对购物车流失占比，运营人员可通过滑动条调节满减折扣券力度，系统根据客单价与转化弹性，自动模拟计算预期挽回的买家规模以及预期回笼的 GMV 销售额。
     ![购物车流失排名与凑单挽回模拟器](static/screenshots/03_abandon_workspace.png)
@@ -29,17 +29,17 @@
 
 ### 4. 时序流量与决策时滞分析
 *   **分时流量走势**：分析 24 小时流量与成交变化，辅助运营进行黄金时段促销决策。
-    ![分时走势工作区](static/screenshots/02_hourly_workspace.png)
+    ![分时走势工作区](static/screenshots/06_hourly_workspace.png)
     *图6：分时趋势工作区（提供 24 小时 PV/UV/Buy 走势波谱图与时段转化率细分）*
 *   **点击-购买决策时滞**：统计分析用户从首次点击商品到最终结算支付的考虑时间差（小时/天数）分布特征。
-    ![时滞放大弹窗及明细数据表](static/screenshots/06_detail_modal.png)
+    ![时滞放大弹窗及明细数据表](static/screenshots/07_detail_modal.png)
     *图7：指标详情放大弹窗（支持单图表放大、数据 Table 明细导出以及 AI/本地规则诊断报告展示）*
 
 ### 5. 交互式 Pandas 数据沙箱
 *   在页面底部为技术型运营人员配置了交互式代码执行终端。
 *   允许直接在内存常驻的 DataFrame 上编写并执行原生的 Pandas 查询语句，秒级输出二维数据表格，满足一切临时的自定义取数需求。
-    ![Pandas 交互式数据沙箱](static/screenshots/07_pandas_sandbox.png)
-    *图8：页面底部内置的 Pandas 数据查询沙箱与控制台输出*
+    ![Pandas 交互式数据沙箱](static/screenshots/08_pandas_sandbox.png)
+    *图8：页面底部内置 of Pandas 数据查询沙箱与控制台输出*
 
 ---
 
