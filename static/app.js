@@ -96,7 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. 筛选菜单数据挂载
+    // 4. 数据口径与筛选菜单挂载
+    loadDatasetMeta();
     loadFilters();
 
     // 5. 联动重载
@@ -124,6 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 10. 初始化 AI 脑舱配置
     initAIConfig();
 });
+
+async function loadDatasetMeta() {
+    try {
+        const meta = await fetchJSON('/api/meta');
+        document.getElementById('dataset-summary').textContent =
+            `数据周期：${meta.date_start} 至 ${meta.date_end} · 当前样本：${meta.rows.toLocaleString()} 条用户行为记录`;
+        document.getElementById('sandbox-dataset-label').textContent =
+            `⚡ Pandas 内存分析工作台（连接 ${meta.rows.toLocaleString()} 条当前样本）`;
+    } catch (error) {
+        document.getElementById('dataset-summary').textContent = '数据样本读取失败，请刷新后重试';
+    }
+}
 
 // ─── 联动拉取筛选选项 ─────────────────────────────────────────────────────────
 async function loadFilters() {

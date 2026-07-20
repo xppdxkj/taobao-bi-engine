@@ -82,7 +82,7 @@
             <header class="dash-header">
                 <div class="header-title">
                     <h1>双十二大促运营分析看板</h1>
-                    <p class="header-sub">数据周期：2017-11-25 至 2017-12-03 · 数据样本：50万行用户行为日志</p>
+                    <p class="header-sub" id="dataset-summary">正在读取当前数据样本...</p>
                 </div>
                 <div class="header-controls">
                     <div class="filter-group">
@@ -412,7 +412,7 @@
             <!-- Pandas 数据沙箱 -->
             <section class="sandbox-section">
                 <div class="sandbox-header">
-                    <span>⚡ Pandas 内存数仓实时计算工作台 (直连 50万行数据)</span>
+                    <span id="sandbox-dataset-label">⚡ Pandas 内存分析工作台（连接当前样本）</span>
                     <button id="sandbox-run" class="btn-run">▶ 运行查询</button>
                 </div>
                 <div class="sandbox-body">

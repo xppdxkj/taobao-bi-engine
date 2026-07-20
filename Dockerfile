@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 复制项目代码与 50万行数仓 csv 数据
+# 复制项目代码与当前分析样本
 COPY . .
 
 # 暴露端口（Hugging Face 默认 7860）

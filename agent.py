@@ -1,6 +1,6 @@
 """
 淘宝双十二大促精细化运营决策系统 — FastAPI 后端服务
-启动时一次性将数仓加载至内存，所有 API 响应 < 10ms
+启动时一次性将样本数据加载至内存，按筛选条件计算分析指标
 """
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +14,7 @@ import analyzer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """FastAPI Startup: 一次性加载 50万行数仓至内存"""
+    """FastAPI Startup: 一次性加载当前 CSV 样本至内存。"""
     analyzer.load_data()
     yield
 
@@ -42,6 +42,11 @@ def index():
 @app.get("/api/filters")
 def api_filters():
     return JSONResponse(analyzer.get_filters())
+
+
+@app.get("/api/meta")
+def api_meta():
+    return JSONResponse(analyzer.get_dataset_meta())
 
 
 @app.get("/api/kpis")

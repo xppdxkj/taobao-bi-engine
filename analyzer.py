@@ -61,6 +61,20 @@ def _get_filtered(date: str = None, category_id: int = None) -> pd.DataFrame:
     return df
 
 
+def get_dataset_meta() -> dict:
+    """Return the facts displayed in the UI and README for the loaded dataset."""
+    df = _df
+    return {
+        "rows": int(len(df)),
+        "users": int(df["user_id"].nunique()),
+        "items": int(df["item_id"].nunique()),
+        "categories": int(df["category_id"].nunique()),
+        "date_start": df["date"].min().strftime("%Y-%m-%d"),
+        "date_end": df["date"].max().strftime("%Y-%m-%d"),
+        "memory_mb": round(float(df.memory_usage(deep=True).sum()) / 1024 / 1024, 2),
+    }
+
+
 # ─── 1. KPI 总览指标计算 ─────────────────────────────────────────────────────
 def get_kpis(date: str = None, category_id: int = None) -> dict:
     df = _get_filtered(date, category_id)

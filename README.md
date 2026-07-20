@@ -1,127 +1,173 @@
-# 大促运营数据分析看板
+# Taobao Promotion Operations Analytics
 
-本项目提供一个针对大促期间用户行为日志的可视化数据分析平台。后端基于 Python FastAPI 与 Pandas 进行多维度指标切片计算，前端使用 ECharts 进行交互图表呈现。
+面向电商大促复盘的用户行为分析与运营决策看板。系统使用 FastAPI + Pandas 对当前 CSV 样本进行筛选计算，通过 ECharts 呈现转化漏斗、时段需求、购物车流失、RFM 用户分层、品类关联和购买决策时滞。
 
-![系统主页大盘全景](static/screenshots/01_overview.png)
-*图1：大促看板主页概览（包含 KPI 数据卡片、全局诊断结论与6大核心图表）*
+> [在线演示](https://taobao-bi-engine.onrender.com) · [GitHub 仓库](https://github.com/xppdxkj/taobao-bi-engine) · [接口文档](https://taobao-bi-engine.onrender.com/docs)
+>
+> Render 免费实例闲置后会休眠，首次打开通常需要等待服务唤醒。页面出现“数据已就绪”后再开始操作。
 
-## 主要分析模块
+## 项目解决什么问题
 
-### 1. 转化漏斗与流失模拟
-*   **大盘转化损耗统计**：展示大促期间“点击 ➔ 收藏加购 ➔ 付款”的行为级漏斗转化效率，直观暴露各链路段的损耗漏洞。
-    ![漏斗下钻分析工作区](static/screenshots/02_funnel_workspace.png)
-    *图2：漏斗下钻工作区（提供各漏斗步骤的环比损耗明细表与下钻运营诊断）*
-*   **流失挽回测算**：针对购物车流失占比，运营人员可通过滑动条调节满减折扣券力度，系统根据客单价与转化弹性，自动模拟计算预期挽回的买家规模以及预期回笼的 GMV 销售额。
-    ![购物车流失排名与凑单挽回模拟器](static/screenshots/03_abandon_workspace.png)
-    *图3：凑单流失分析工作区（包含 Top 10 流失品类排行、流失明细数据以及凑单挽回 What-If 模拟计算器）*
+看板不是只展示成交总量，而是围绕大促运营的五个可执行问题组织分析：
 
-### 2. RFM 用户价值分层
-*   依据最近购买时间（Recency）、大促成交频次（Frequency）及估算金额（Monetary）对买家进行 8 大客群分类。
-*   提供多维价值分层散点矩阵图。其中 X 轴代表 R（购买天数，向右靠拢代表时效近），Y 轴代表 F（购买频次），气泡大小代表该客群的买家规模。
-    ![RFM买家价值分层散点气泡云图](static/screenshots/04_rfm_workspace.png)
-    *图4：RFM 用户价值分层工作区（提供星云散点气泡矩阵、客群占比列表与 CRM 精准触达行动建议）*
+| 运营问题 | 分析方法 | 决策输出 |
+| --- | --- | --- |
+| 用户在哪一段大量流失 | PV → 收藏/加购 → 支付漏斗 | 定位损耗最大的链路层级 |
+| 哪些时段值得集中投放 | 小时级 PV、UV 与成交趋势 | 识别流量峰值与成交窗口 |
+| 哪些品类加购后没有购买 | 品类购物车流失排行 | 选择凑单券和召回优先级 |
+| 哪些用户值得重点维护 | RFM 八类客群分层 | 形成留存、唤醒与复购策略 |
+| 哪些品类适合组合销售 | Apriori 共购、支持度与 Lift | 输出搭售组合和强关联对 |
 
-### 3. 购物篮关联挖掘与套餐设计
-*   采用 Apriori 频繁项集算法计算商品类目共购的提升度（Lift）与支持度，并绘制网络拓扑关系图。
-*   运营人员可使用“搭售组合模拟器”选择任意两个类目，系统会自动计算出其频繁共购数据，并直接给出定价折扣率建议（如强关联建议 9.0 折，一般关联建议 9.5 折），直接指导详情页的套餐合并设计。
-    ![购物篮关联网络关系图与组合模拟器](static/screenshots/05_assoc_workspace.png)
-    *图5：关联推荐网络工作区（包含频繁共购拓扑力导向图、Lift 提升度 Top 10 排行表以及套餐搭售模拟定价器）*
+## 当前数据口径
 
-### 4. 时序流量与决策时滞分析
-*   **分时流量走势**：分析 24 小时流量与成交变化，辅助运营进行黄金时段促销决策。
-    ![分时走势工作区](static/screenshots/06_hourly_workspace.png)
-    *图6：分时趋势工作区（提供 24 小时 PV/UV/Buy 走势波谱图与时段转化率细分）*
-*   **点击-购买决策时滞**：统计分析用户从首次点击商品到最终结算支付的考虑时间差（小时/天数）分布特征。
-    ![时滞放大弹窗及明细数据表](static/screenshots/07_detail_modal.png)
-    *图7：指标详情放大弹窗（支持单图表放大、数据 Table 明细导出以及 AI/本地规则诊断报告展示）*
+仓库内的数据由 `downloader.py` 按设定的日期、时段、品类权重、转化率与共购关系生成，用于复现分析流程；**不是淘宝生产数据，也不包含真实个人信息。**
 
-### 5. 交互式 Pandas 数据沙箱
-*   在页面底部为技术型运营人员配置了交互式代码执行终端。
-*   允许直接在内存常驻的 DataFrame 上编写并执行原生的 Pandas 查询语句，秒级输出二维数据表格，满足一切临时的自定义取数需求。
-    ![Pandas 交互式数据沙箱](static/screenshots/08_pandas_sandbox.png)
-    *图8：页面底部内置 of Pandas 数据查询沙箱与控制台输出*
+| 指标 | 当前样本 |
+| --- | ---: |
+| 用户行为记录 | 254,315 条 |
+| 去重用户 | 8,000 |
+| 去重商品 | 20,000 |
+| 商品品类 | 20 |
+| 数据周期 | 2017-11-24 至 2017-12-03 |
+| 内存 DataFrame | 约 9.46 MB |
 
----
+样本规模、日期和内存占用由 `GET /api/meta` 从实际加载的数据动态返回，页面不再硬编码“50 万行”。
 
-## 🛠️ 技术栈与设计
+## 功能实景
 
-*   **后端**：Python FastAPI
-*   **数据处理**：Pandas 内存计算。系统在启动时将 50 万行 CSV 流水数据一次性预加载至内存并建立索引，多维度交叉切片 API 响应时间在 10ms 以内。
-*   **前端**：原生 HTML5 + CSS3 + JavaScript，使用 ECharts 5 渲染图表。
-*   **外部诊断接口**：预留了大语言模型（Gemini / OpenAI / DeepSeek）的 HTTP 请求通道，当前默认采用本地规则引擎进行报告输出。
+以下截图来自当前本地构建，均已等待数据与 ECharts 图表完成加载。点击图片可在 GitHub 中查看原图。
 
-## 后续扩展接口（实时数据与文件上传）
+### 1. 经营概览
 
-本系统采用内存数仓设计，所有的分析 API 均基于 `analyzer.py` 中的全局 DataFrame 变量 `_df` 进行切片查询。如果需要介入实时文件或支持前台文件上传，可参考以下接口扩展设计：
+同一页面汇总六项核心指标、关键经营结论与六类分析入口；日期和商品品类筛选会触发后端重新计算。
 
-### 1. 支持 CSV 文件上传接口
-若要支持在网页端上传新的大促数据文件，只需在 `agent.py` 中新增一个文件接收接口，保存并覆盖本地 CSV 后，调用重载函数：
-```python
-from fastapi import UploadFile, File
+![大促经营概览与当前数据口径](static/screenshots/00_overview-current.png)
 
-@app.post("/api/upload-dataset")
-async def upload_dataset(file: UploadFile = File(...)):
-    # 1. 保存上传的 CSV 到本地目录
-    with open(analyzer.INPUT_FILE, "wb") as f:
-        f.write(await file.read())
-    # 2. 强制清除全局缓存并重新载入内存
-    analyzer.load_data(force=True)
-    return {"status": "success", "rows": len(analyzer._df)}
+### 2. 转化漏斗下钻
+
+漏斗同时给出去重用户覆盖、层级转化率和相对上一层损耗，避免只看一个总体转化率。
+
+![漏斗图、层级明细与诊断入口](static/screenshots/01_funnel-current.png)
+
+### 3. RFM 用户价值分层
+
+横轴为最近购买时间，纵轴为购买频次，气泡大小代表客群规模；八类客群可继续下钻到规模、占比与运营建议。
+
+![RFM 八类客群气泡图](static/screenshots/04_rfm-current.png)
+
+### 4. 品类关联与搭售
+
+系统先呈现共购网络，再给出可交互的组合计算器和 Lift 排行，用于复核搭售候选，而不是直接把相关性当成自动促销指令。
+
+![Apriori 品类关联网络](static/screenshots/05_association-current.png)
+
+![搭售组合计算器与关联规则明细](static/screenshots/05_association-detail-current.png)
+
+### 5. 手机端适配
+
+390px 手机宽度下，导航可横向滑动，筛选器、KPI 卡片和经营结论重新排布为适合触控阅读的布局。
+
+<p align="center">
+  <img src="static/screenshots/mobile-overview-current.png" alt="手机端经营概览" width="390" />
+</p>
+
+## 已实现能力与边界
+
+| 能力 | 状态 | 说明 |
+| --- | --- | --- |
+| 日期与品类联动筛选 | 已实现 | 后端按筛选条件重新计算 KPI、漏斗、时段和流失指标 |
+| 转化、流失和时段分析 | 已实现 | 返回图表数据、明细表和规则诊断文本 |
+| RFM 用户分层 | 已实现 | 基于最近购买、频次和估算金额划分八类客群 |
+| Apriori 品类关联 | 已实现 | 计算共购次数、支持度和 Lift，并提供组合复核 |
+| 指标详情弹窗 | 已实现 | 放大图表，同时展示明细与归因说明 |
+| 本地规则诊断 | 默认启用 | 不依赖外部模型即可输出固定口径的运营解释 |
+| 外部大模型诊断 | 可选 | 支持兼容 OpenAI / DeepSeek / Gemini 的 HTTP 配置；仓库不保存密钥 |
+| Pandas 代码工作台 | 本地演示 | 当前端点会执行输入代码，只应在可信本地环境使用，不应直接暴露给不受信任用户 |
+| 实时行为采集 | 未实现 | 当前是离线 CSV 样本，不宣称 Kafka、埋点或实时数仓已经上线 |
+| 因果推断 | 未实现 | 页面结论用于描述样本关系，不把相关性表述为因果效果 |
+
+## 数据与服务架构
+
+```text
+可复现 CSV 样本
+      ↓
+Pandas 类型优化与内存加载
+      ↓
+KPI / 漏斗 / 时段 / 流失 / RFM / Apriori / 时滞
+      ↓
+FastAPI JSON 接口
+      ↓
+原生 JavaScript + ECharts 交互看板
+      ↓
+筛选、下钻、模拟器与规则/可选 LLM 诊断
 ```
 
-### 2. 实时行为流水追加接口
-若要接入 Kafka 或前端埋点上报的实时流水，可在后端提供一个追加接口，将新数据实时追加至 `_df`：
-```python
-@app.post("/api/append-record")
-def append_record(user_id: int, item_id: int, category_id: int, behavior: str, timestamp: int):
-    # 1. 组装新行
-    new_row = {
-        "user_id": user_id,
-        "item_id": item_id,
-        "category_id": category_id,
-        "behavior_type": behavior,
-        "timestamp": timestamp,
-        "date": pd.to_datetime(timestamp, unit="s").date(),
-        "hour": pd.to_datetime(timestamp, unit="s").hour
-    }
-    # 2. 追加至全局 DataFrame 中
-    analyzer._df = pd.concat([analyzer._df, pd.DataFrame([new_row])], ignore_index=True)
-    return {"status": "ok"}
+| 层次 | 技术 |
+| --- | --- |
+| 数据处理 | Python、Pandas、NumPy |
+| 后端 | FastAPI、Uvicorn |
+| 前端 | HTML、CSS、JavaScript、ECharts 5 |
+| 分析方法 | 漏斗分析、分时统计、RFM、Apriori、决策时滞分布 |
+| 部署 | Docker、Render Web Service |
+
+## API
+
+| 路径 | 用途 |
+| --- | --- |
+| `GET /api/meta` | 当前数据规模、日期范围和内存占用 |
+| `GET /api/filters` | 日期与品类筛选项 |
+| `GET /api/kpis` | 成交、UV、PV、转化率、流失率和浏览深度 |
+| `GET /api/funnel` | 三层行为漏斗 |
+| `GET /api/hourly` | 24 小时 PV、UV 与成交趋势 |
+| `GET /api/cart-abandonment` | 品类购物车流失排行 |
+| `GET /api/rfm` | 八类 RFM 客群 |
+| `GET /api/association` | 品类共购网络与 Lift |
+| `GET /api/latency` | 点击至购买决策时滞 |
+| `GET /api/ai-analyze` | 本地规则或可选外部模型诊断 |
+
+## 本地运行
+
+```bash
+git clone https://github.com/xppdxkj/taobao-bi-engine.git
+cd taobao-bi-engine
+pip install -r requirements.txt
+python agent.py
+```
+
+打开 `http://127.0.0.1:8000`，接口文档位于 `http://127.0.0.1:8000/docs`。
+
+Docker：
+
+```bash
+docker build -t taobao-bi-engine .
+docker run --rm -p 8000:7860 taobao-bi-engine
 ```
 
 ## 项目结构
 
-```bash
-├── data/
-│   └── user_behavior.csv    # 50万行大促用户行为日志（运行必需）
+```text
+├── data/user_behavior.csv       # 当前分析样本
 ├── static/
-│   ├── index.html           # 前端大屏骨架
-│   ├── style.css            # 看板样式表
-│   └── app.js               # 图表渲染与交互逻辑
-├── agent.py                 # FastAPI 路由服务
-├── analyzer.py              # 数据清洗、RFM 与 Apriori 算法计算逻辑
-├── requirements.txt         # 依赖库列表
-└── Dockerfile               # 镜像打包配置
+│   ├── index.html               # 页面结构
+│   ├── style.css                # 桌面与手机响应式样式
+│   ├── app.js                   # API 联动、图表和交互
+│   └── screenshots/             # README 实景截图
+├── agent.py                     # FastAPI 路由与静态页面服务
+├── analyzer.py                  # 指标、RFM、关联和诊断逻辑
+├── downloader.py                # 可复现样本生成器
+├── requirements.txt
+└── Dockerfile
 ```
 
-## 运行说明
+## 部署说明
 
-### 本地运行
-1. 安装依赖：
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. 启动服务：
-   ```bash
-   python agent.py
-   ```
+公开演示使用 GitHub + Render：
 
-### Docker 容器运行
-1. 构建镜像：
-   ```bash
-   docker build -t taobao-bi-engine .
-   ```
-2. 启动容器：
-   ```bash
-   docker run -d -p 8000:7860 taobao-bi-engine
-   ```
+- Render 从本仓库构建 Docker 服务；
+- 免费实例会休眠，首次访问存在冷启动延迟；
+- 当前数据随镜像部署，不会因为访客操作而永久改变；
+- 若要公开长期运行，应先关闭或鉴权 Pandas 代码执行端点，并增加持久化数据源和访问控制。
+
+## License
+
+代码和模拟数据仅用于个人作品展示与学习。
